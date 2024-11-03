@@ -10,9 +10,11 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 
 #include "wunthshin/Components/PickUp/C_WSPickUp.h"
-#include "wunthshin/Data/ItemTableRow/ItemTableRow.h"
-#include "wunthshin/Data/ItemMetadata/SG_WSItemMetadata.h"
+#include "wunthshin/Data/Items/ItemTableRow/ItemTableRow.h"
+#include "wunthshin/Data/Items/ItemMetadata/SG_WSItemMetadata.h"
 #include "wunthshin/Subsystem/Utility.h"
+#include "wunthshin/Widgets/ItemNotify/WG_WSItemNotify.h"
+#include "Components/WidgetComponent.h"
 
 class USphereComponent;
 const FName AA_WSItem::CollisionComponentName = TEXT("Collision");
@@ -57,6 +59,20 @@ AA_WSItem::AA_WSItem(const FObjectInitializer& ObjectInitializer) :
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComponent->SetSimulatePhysics(false);
 	MeshComponent->SetGenerateOverlapEvents(false);
+
+	// Item notify widget
+	ItemNotifyWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("ItemNotifyWidget"));
+	ItemNotifyWidget->SetWidgetSpace(EWidgetSpace::World);
+	ItemNotifyWidget->SetComponentTickEnabled(true);
+	ItemNotifyWidget->SetDrawSize(FVector2D{ 500.f, 45.f });
+	ItemNotifyWidget->SetAbsolute(false, true, true);
+	ItemNotifyWidget->SetCastShadow(false);
+
+	if (static ConstructorHelpers::FClassFinder<UUserWidget> DefaultItemNotifyWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/ThirdPerson/Blueprints/Widgets/BP_WG_WSItemNotify.BP_WG_WSItemNotify_C'"));
+		DefaultItemNotifyWidgetClass.Succeeded())
+	{
+		ItemNotifyWidget->SetWidgetClass(DefaultItemNotifyWidgetClass.Class);
+	}
 }
 
 void AA_WSItem::OnConstruction(const FTransform& Transform)
@@ -67,41 +83,48 @@ void AA_WSItem::OnConstruction(const FTransform& Transform)
 
 void AA_WSItem::InitializeCollisionComponent(TSubclassOf<UShapeComponent> InClass)
 {
+	USceneComponent* PreviousAttachParent = GetRootComponent()->GetAttachParent();
+	const FTransform PreviousTransform    = GetRootComponent()->GetComponentTransform();
+	
 	// 새로운 충돌체로의 교환
-	if (!CollisionComponent || (InClass != CollisionComponent->GetClass()))
+	if (!CollisionComponent || InClass != CollisionComponent->GetClass())
 	{
-		USceneComponent* PreviousAttachParent = GetRootComponent()->GetAttachParent();
-		FTransform PreviousTransform = GetRootComponent()->GetComponentTransform();
-		
 		if (CollisionComponent)
 		{
 			CollisionComponent->DestroyComponent();
 		}
 
-		CollisionComponent = NewObject<UShapeComponent>(this, InClass, CollisionComponentName);
-		if (CollisionComponent)
-		{
-			SetRootComponent(CollisionComponent);
-			if (PreviousAttachParent)
-			{
-				CollisionComponent->SetupAttachment(PreviousAttachParent);
-			}
-			CollisionComponent->RegisterComponent();
+		CollisionComponent = NewObject<UShapeComponent>(this, InClass, CollisionComponentName, RF_Public);
+	}
 
-			MeshComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			MeshComponent->AttachToComponent
-			(
-				CollisionComponent, 
-				FAttachmentTransformRules::KeepRelativeTransform
-			);
-
-			CollisionComponent->SetWorldTransform(PreviousTransform);
-			InitializeCollisionLazy();
-		}
-		else
+	// 기존에 충돌체가 있었거나, 새로 생성된 충돌체의 구조 재설정
+	if (CollisionComponent)
+	{
+		SetRootComponent(CollisionComponent);
+		if (PreviousAttachParent)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Unknown error! Collision component is not initialized properly!"));
+			CollisionComponent->SetupAttachment(PreviousAttachParent);
 		}
+		CollisionComponent->RegisterComponent();
+
+		MeshComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		MeshComponent->AttachToComponent
+		(
+			CollisionComponent, 
+			FAttachmentTransformRules::KeepRelativeTransform
+		);
+		ItemNotifyWidget->AttachToComponent
+		(
+			CollisionComponent,
+			FAttachmentTransformRules::KeepRelativeTransform
+		);
+
+		CollisionComponent->SetWorldTransform(PreviousTransform);
+		InitializeCollisionLazy();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Unknown error! Collision component is not initialized properly!"));
 	}
 }
 
@@ -147,10 +170,22 @@ void AA_WSItem::ApplyAsset(const FDataTableRowHandle& InRowHandle)
 
 	UpdateCollisionFromDataTable(Data);
 
-	ItemMetadata = FItemSubsystemUtility::GetMetadata<UItemSubsystem, UItemEditorSubsystem, USG_WSItemMetadata>(GetWorld(), Data->ItemName);
+	ItemMetadata = FItemSubsystemUtility::GetMetadata<USG_WSItemMetadata>(GetWorld(), this, Data->ItemName);
 	
 	// todo: Icon, ItemName 등 정보 추가
 }
+
+UClass* AA_WSItem::GetSubsystemType() const
+{
+	return UItemSubsystem::StaticClass();
+}
+
+#ifdef WITH_EDITOR
+UClass* AA_WSItem::GetEditorSubsystemType() const
+{
+	return UItemEditorSubsystem::StaticClass();
+}
+#endif
 
 const USG_WSItemMetadata* AA_WSItem::GetItemMetadata() const
 {
@@ -161,6 +196,22 @@ const USG_WSItemMetadata* AA_WSItem::GetItemMetadata() const
 void AA_WSItem::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ItemNotifyWidget->InitWidget();
+
+	if (UWG_WSItemNotify* ItemWidget = Cast<UWG_WSItemNotify>(ItemNotifyWidget->GetWidget()))
+	{
+		ItemWidget->SetParentItem(this);
+	}
+
+#ifdef WITH_EDITOR
+	// 블루프린트 객체가 리컴파일하기 전까지 데이터 테이블이 수정된 사항이 반영되지 않음
+	// 블루프린트에서 설정된 에디터 메타데이터를 강제로 갱신
+	if (!GetClass()->IsNative() && GetWorld()->IsGameWorld())
+	{
+		FetchAsset(this, AssetName);
+	}
+#endif
 
 	// note: 동적으로 설정한 충돌체의 초기화를 해야함 (블루프린트 또는 상속 클래스에서)
 }

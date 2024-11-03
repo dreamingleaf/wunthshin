@@ -23,8 +23,10 @@
 #include "wunthshin/Enums.h"
 #include "wunthshin/Components/Shield/C_WSShield.h"
 #include "wunthshin/Data/CharacterTableRow/CharacterTableRow.h"
-#include "wunthshin/Data/ItemMetadata/SG_WSItemMetadata.h"
+#include "wunthshin/Data/Items/ItemMetadata/SG_WSItemMetadata.h"
 #include "wunthshin/Subsystem/ElementSubsystem/ElementSubsystem.h"
+#include "Components/WidgetComponent.h"
+#include "wunthshin/Subsystem/WorldStatusSubsystem/WorldStatusSubsystem.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -90,6 +92,7 @@ AA_WSCharacter::AA_WSCharacter()
     GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
     GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
     GetCharacterMovement()->GravityScale = 1.0f;
+    GetCharacterMovement()->SetWalkableFloorAngle(70.f);
 
     // Create a camera boom (pulls in towards the player if there is a collision)
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -115,7 +118,7 @@ AA_WSCharacter::AA_WSCharacter()
     Shield->SetupAttachment(GetMesh());
     
     RightHandWeapon = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandWeapon"));
-	
+
 	CameraBoom->bEnableCameraLag = true;
 }
 
@@ -182,6 +185,18 @@ void AA_WSCharacter::ApplyAsset(const FDataTableRowHandle& InRowHandle)
         GetMesh()->SetAnimInstanceClass(Data->AnimInstance);
     }
 }
+
+UClass* AA_WSCharacter::GetSubsystemType() const
+{
+    return UCharacterSubsystem::StaticClass();
+}
+
+#ifdef WITH_EDITOR
+UClass* AA_WSCharacter::GetEditorSubsystemType() const
+{
+    return UCharacterEditorSubsystem::StaticClass();
+}
+#endif
 
 void AA_WSCharacter::BeginPlay()
 {
@@ -264,6 +279,20 @@ bool AA_WSCharacter::Take(UC_WSPickUp* InTakenComponent)
     
     // 인벤토리로 무기 또는 아이템 저장
     Inventory->AddItem(Item);
+
+    // todo/test: 아이템 효과 테스트, 이후에 삭제 필요함
+    {
+        if (!Item->IsA<AA_WSWeapon>()) 
+        {
+            int32 Index = Inventory->FindItemIndex(Item->GetItemMetadata());
+
+            if (Index != INDEX_NONE)
+            {
+                Inventory->UseItem(Index, this);
+            }
+        }
+    }
+    
     return true;
 }
 
@@ -314,6 +343,8 @@ void AA_WSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
         // 떨어뜨리기
         EnhancedInputComponent->BindAction(DropAction, ETriggerEvent::Started, this, &AA_WSCharacter::CheckItemAndDrop);
+
+        
     }
     else
     {
@@ -527,39 +558,13 @@ bool AA_WSCharacter::CanGlide()
 
 void AA_WSCharacter::FindAndTake()
 {
-    TArray<FOverlapResult> OverlapResults;
-    FCollisionQueryParams QueryParams(NAME_None, false, this);
-    QueryParams.AddIgnoredActors(reinterpret_cast<const TArray<AActor*>&>(Inventory->GetItems()));
-
-    // 손에 있는 무기는 줍는 대상에서 제외 
-    if (const AActor* ChildWeaponActor = RightHandWeapon->GetChildActor())
-    {
-        QueryParams.AddIgnoredActor(ChildWeaponActor);
-    }
-    
-    // 반환 값은 blocking일때 참을 반환하나, overlap으로 trace channel을 쓰기 때문에 무시함
-    GetWorld()->OverlapMultiByChannel
-    (
-        OverlapResults,
-        GetActorLocation(),
-        FQuat::Identity,
-        ECC_GameTraceChannel2,
-        FCollisionShape::MakeSphere(100.f)
-    );
+    TArray<AActor*> OverlapResults = GetWorld()->GetSubsystem<UWorldStatusSubsystem>()->GetNearestItems();
 
     if (!OverlapResults.IsEmpty())
     {
-        // Overlap된 물체들을 거리 순서대로 정렬한다
-        OverlapResults.Sort
-        ([this](const FOverlapResult& Left, const FOverlapResult& Right)
-            {
-                return FVector::Distance(Left.GetActor()->GetActorLocation(), GetActorLocation()) >
-                    FVector::Distance(Right.GetActor()->GetActorLocation(), GetActorLocation());
-            });
-
-        for (FOverlapResult OverlapResult : OverlapResults)
+        for (AActor* OverlapActor : OverlapResults)
         {
-            const UC_WSPickUp* PickUpComponent = OverlapResult.GetActor()->GetComponentByClass<UC_WSPickUp>();
+            const UC_WSPickUp* PickUpComponent = OverlapActor->GetComponentByClass<UC_WSPickUp>();
             // Item trace channel에 pick up component가 없는 물체가 발견된 경우
             ensureAlwaysMsgf(PickUpComponent, TEXT("Item does not have the pick up component!"));
 

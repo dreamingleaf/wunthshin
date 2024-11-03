@@ -1,14 +1,20 @@
-﻿#pragma once
+#pragma once
+#include "wunthshin/Interfaces/DataTableFetcher/DataTableFetcher.h"
 
-class USG_WSItemMetadata;
+class IDataTableFetcher;
 
 struct FItemSubsystemUtility
 {
 	template <typename TableT, typename MetadataT>
-	static void UpdateTable(UDataTable* InDataTable, TMap<FName, MetadataT*>& OutMetadataMap)
+	static void UpdateTable
+	(
+		UDataTable* InDataTable, 
+		TMap<FName, MetadataT*>& OutMetadataMap
+	)
 	{
 		check(InDataTable);
-
+		OutMetadataMap.Empty();
+		
 		TArray<TableT*> Rows;
 		InDataTable->GetAllRows<TableT>(TEXT(""), Rows);
 
@@ -18,6 +24,10 @@ struct FItemSubsystemUtility
 			OutMetadataMap[Row->ItemName] = NewObject<MetadataT>();
 			OutMetadataMap[Row->ItemName]->AssetName = Row->ItemName;
 			OutMetadataMap[Row->ItemName]->ItemType = Row->ItemType;
+			OutMetadataMap[Row->ItemName]->ItemIcon = Row->ItemIcon;
+			OutMetadataMap[Row->ItemName]->ItemDescription = Row->ItemDescription;
+			OutMetadataMap[Row->ItemName]->ItemEffect = FEffectRowHandle(Row->ItemEffect);
+			OutMetadataMap[Row->ItemName]->ItemParameter = Row->ItemParameter;
 		}
 	}
 
@@ -34,22 +44,33 @@ struct FItemSubsystemUtility
 		return nullptr;
 	}
 
-	template <typename SubsystemGameInstanceT, typename SubsystemEditorT, typename MetadataT>
-	static MetadataT* GetMetadata(const UWorld* InWorld, const FName& InAssetName)
+	template <typename MetadataT>
+	static MetadataT* GetMetadata(const UWorld* InWorld, const IDataTableFetcher* InDataTableFetcher, const FName& InAssetName)
 	{
+		USubsystem* Subsystem = nullptr;
+		MetadataT* OutValue = nullptr;
+		
 #ifdef WITH_EDITOR
-		if (GIsEditor)
+		if (InWorld->IsEditorWorld())
 		{
-			return GEditor->GetEditorSubsystem<SubsystemEditorT>()->GetMetadata(InAssetName);
+			Subsystem = GEditor->GetEditorSubsystemBase(InDataTableFetcher->GetEditorSubsystemType());
 		}
 #endif
-		if (!InWorld->IsEditorWorld())
+		if (InWorld->IsGameWorld())
 		{
-			return InWorld->GetGameInstance()->GetSubsystem<SubsystemGameInstanceT>()->GetMetadata(InAssetName);
+			Subsystem = InWorld->GetGameInstance()->GetSubsystemBase(InDataTableFetcher->GetSubsystemType());
 		}
 
-		// World가 존재하지 않음
-		check(false);
-		return nullptr;
+		check(Subsystem);
+		IItemMetadataGetter* MetadataGetter = Cast<IItemMetadataGetter>(Subsystem);
+		check(MetadataGetter);
+
+		if (!MetadataGetter || !Subsystem)
+		{
+			return nullptr;
+		}
+		
+		OutValue = MetadataGetter->GetMetadata(InAssetName);
+		return OutValue;
 	}
 };

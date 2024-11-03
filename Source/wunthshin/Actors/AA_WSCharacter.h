@@ -165,6 +165,11 @@ public:
 
 	virtual void ApplyAsset(const FDataTableRowHandle& InRowHandle) override;
 
+	virtual UClass* GetSubsystemType() const override;
+#ifdef WITH_EDITOR
+	virtual UClass* GetEditorSubsystemType() const override;
+#endif
+
 protected:
 
 	/** Called for movement input */
@@ -210,6 +215,9 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	// 오른손 무기
+	FORCEINLINE class UChildActorComponent* GetRightHandWeapon() const { return RightHandWeapon; }
+
 
 	virtual bool Take(UC_WSPickUp* InTakenComponent) override;
 	
