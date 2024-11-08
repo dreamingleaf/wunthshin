@@ -4,6 +4,7 @@
 #include "Engine/TriggerBox.h"
 #include "Components/BoxComponent.h"
 #include "Blueprint/UserWidget.h"
+#include "wunthshin/Subsystem/GameInstanceSubsystem/LevelSave/LevelSaveInstance.h"
 #include "BaseTriggerBox.generated.h"
 
 UCLASS()
@@ -47,4 +48,6 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
     FSoftObjectPath SelectedLevel;  
+
+ //   void SaveWeaponToLevelSaveInstance();
 };

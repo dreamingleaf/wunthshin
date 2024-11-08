@@ -3,7 +3,7 @@
 #include "Components/Button.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
-
+#include "wunthshin/Subsystem/GameInstanceSubsystem/LevelSave/LevelSaveInstance.h"
 #include "wunthshin/Actors/Pawns/Character/AA_WSCharacter.h"
 
 ABaseTriggerBox::ABaseTriggerBox()
@@ -102,14 +102,46 @@ void ABaseTriggerBox::ShowPortalUI(AA_WSCharacter* A_WSCharacter)
 
 void ABaseTriggerBox::OnYesClicked()
 {
+    // RightHandWeapon에 대한 정보를 저장
+    ULevelSaveInstance* LevelSave = GetWorld()->GetGameInstance()->GetSubsystem<ULevelSaveInstance>();
 
-      // 선택한 레벨이 있는 경우 열기
-    if (!SelectedLevel.IsNull())
+    // 1. 플레이어 컨트롤러 확인
+    APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+    if (!PlayerController) return;
+
+    // 2. 캐릭터 확인
+    AA_WSCharacter* Character = Cast<AA_WSCharacter>(PlayerController->GetPawn());
+    if (!Character) return;
+
+    // 3. 무기 정보 저장
+    if (Character && Character->GetRightHandComponent())
     {
-        UGameplayStatics::OpenLevel(GetWorld(), *SelectedLevel.GetAssetName());
+        if (LevelSave)
+        {
+            // 무기 정보 저장
+            LevelSave->SavedWeaponClass = Character->GetRightHandComponent()->GetChildActorClass();
+            LevelSave->SavedSocketName = Character->GetRightHandWeaponSocketName();
+            //LevelSave->SavedWeaponAssetName = Character->GetRightHandComponent()->Get;  // 수정된 메서드 호출
+            AA_WSWeapon* Weapon = Cast<AA_WSWeapon>(Character->GetRightHandComponent()->GetChildActor());
+            if (Weapon)
+            {
+                LevelSave->SavedWeaponAssetName = Weapon->GetWeaponAssetName(); // GetWeaponAssetName()은 AA_WSWeapon에 있음
+            }
+        }
     }
 
-    // UI 비활성화
+    // 4. 레벨 전환
+    if (!SelectedLevel.IsNull())
+    {
+        // 레벨 이름으로 레벨 로드
+        UGameplayStatics::OpenLevel(GetWorld(), *SelectedLevel.GetAssetName());
+        if (LevelSave)
+        {
+            LevelSave->OnLevelLoaded();  // 레벨 로딩 후 무기 소환
+        }
+    }
+
+    // 5. UI 비활성화
     if (PortalUI)
     {
         PortalUI->RemoveFromParent();
@@ -117,8 +149,7 @@ void ABaseTriggerBox::OnYesClicked()
         bIsUIVisible = false; // UI가 사라짐
     }
 
-    // 입력 모드 복구
-    APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+    // 6. 입력 모드 복구
     if (PlayerController)
     {
         FInputModeGameOnly InputMode;
@@ -152,3 +183,20 @@ void ABaseTriggerBox::OnNoClicked()
         }
     }
 }
+
+//// 무기 정보를 LevelSaveInstance에 저장하는 함수
+//void ABaseTriggerBox::SaveWeaponToLevelSaveInstance()
+//{
+//    ULevelSaveInstance* LevelSave = NewObject<ULevelSaveInstance>(GetWorld());
+//    if (LevelSave)
+//    {
+//        AA_WSCharacter* Character = Cast<AA_WSCharacter>(GetWorld()->GetFirstPlayerController()->GetPawn());
+//        if (Character && Character->GetRightHandComponent())
+//        {
+//            // 무기 정보를 LevelSaveInstance에 저장
+//            LevelSave->SavedWeaponClass = Character->GetRightHandComponent()->GetChildActorClass();
+//            LevelSave->SavedSocketName = Character->GetRightHandWeaponSocketName(); // FName 타입을 그대로 저장
+//            LevelSave->SavedWeaponAssetName = Character->GetAssetName();
+//        }
+//    }
+//}

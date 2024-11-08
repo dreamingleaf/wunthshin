@@ -41,5 +41,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE TArray<UAnimMontage*> GetAttackMontages() const { return AttackMontages; }
 	
-	
+	// 무기 자산 이름을 저장하는 변수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	FName WeaponAssetName;
+
+	// 무기 자산 이름을 설정하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void SetWeaponAssetName(FName NewAssetName);
+
+	// 무기 자산 이름을 반환하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	FName GetWeaponAssetName() const;
 };

@@ -25,6 +25,8 @@ AA_WSWeapon::AA_WSWeapon(const FObjectInitializer& ObjectInitializer)
 	GetMesh()->SetGenerateOverlapEvents(true);
 
 	GetItemNotifyWidget()->SetupAttachment(GetMesh());
+
+	WeaponAssetName = FName("DefaultWeapon");
 }
 
 UScriptStruct* AA_WSWeapon::GetTableType() const
@@ -58,4 +60,15 @@ void AA_WSWeapon::ApplyAsset(const FTableRowBase* InRowPointer)
 	AttackMontages = TableRow->AttackMontages;
 
 	WeaponComponent->SetDamage(TableRow->Damage);
+}
+
+void AA_WSWeapon::SetWeaponAssetName(FName NewAssetName)
+{
+	// 무기 자산 이름을 설정
+	WeaponAssetName = NewAssetName;
+}
+
+FName AA_WSWeapon::GetWeaponAssetName() const
+{
+	return WeaponAssetName;
 }

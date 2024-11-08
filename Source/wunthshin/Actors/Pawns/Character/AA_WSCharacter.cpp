@@ -4,6 +4,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/ChildActorComponent.h"
 #include "Animation/AnimInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -12,8 +13,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
-#include "wunthshin/Components/PickUp/C_WSPickUp.h"
-#include "wunthshin/Components/Inventory/C_WSInventory.h"
 #include "wunthshin/Actors/Item/A_WSItem.h"
 #include "wunthshin/Actors/Item/Weapon/A_WSWeapon.h"
 #include "InputMappingContext.h"
@@ -22,12 +21,17 @@
 #include "wunthshin/Components/Shield/C_WSShield.h"
 #include "wunthshin/Data/Characters/CharacterTableRow/CharacterTableRow.h"
 #include "wunthshin/Data/Items/ItemMetadata/SG_WSItemMetadata.h"
-#include "wunthshin/Subsystem/GameInstanceSubsystem/Element/ElementSubsystem.h"
-#include "wunthshin/Components/ClimCharacterMovementComponent.h"
-
-#include "wunthshin/Components/Stats/StatsComponent.h"
 #include "wunthshin/Data/Items/DamageEvent/WSDamageEvent.h"
+
+#include "wunthshin/Components/PickUp/C_WSPickUp.h"
+#include "wunthshin/Components/Inventory/C_WSInventory.h"
+#include "wunthshin/Components/ClimCharacterMovementComponent.h"
+#include "wunthshin/Components/Stats/StatsComponent.h"
+#include "wunthshin/Components/Shield/C_WSShield.h"
+
+#include "wunthshin/Subsystem/GameInstanceSubsystem/Element/ElementSubsystem.h"
 #include "wunthshin/Subsystem/Utility.h"
+#include "wunthshin/Subsystem/GameInstanceSubsystem/LevelSave/LevelSaveInstance.h"
 #ifdef WITH_EDITOR
 #include "wunthshin/Subsystem/EditorSubsystem/Character/CharacterEditorSubsystem.h"
 #endif
@@ -133,6 +137,7 @@ AA_WSCharacter::AA_WSCharacter(const FObjectInitializer & ObjectInitializer)
 
     CilmMovementComponent = Cast<UClimCharacterMovementComponent>(GetCharacterMovement());
 
+    // RightHandWeaponSocketName = FName("RightHandSocket"); // 기본 소켓 이름 설정 (각 캐릭터마다 다르게 설정 가능)
 }
 
 void AA_WSCharacter::HandleStaminaDepleted()
@@ -297,9 +302,6 @@ void AA_WSCharacter::Tick(float DeltaSeconds)
         bCanGlide = false;
         StopJumping();
     }
-  
-
-
 
 }
 
@@ -734,6 +736,7 @@ void AA_WSCharacter::CancelClimb()
     CilmMovementComponent->CancelClimbing();
 }
 
-
-
-
+FName AA_WSCharacter::GetRightHandWeaponSocketName() const
+{
+    return RightHandWeaponSocketName; // 인스턴스별 소켓 이름 반환
+}

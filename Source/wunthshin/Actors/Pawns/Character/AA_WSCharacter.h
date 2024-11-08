@@ -274,7 +274,7 @@ public:
 	UFUNCTION(BlueprintPure)
 	FORCEINLINE UClimCharacterMovementComponent* GetCustomCharacterMovement() const { return CilmMovementComponent; }
 
-
-
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	FName GetRightHandWeaponSocketName() const;
 
 };
