@@ -121,11 +121,11 @@ void ABaseTriggerBox::OnYesClicked()
             // 무기 정보 저장
             LevelSave->SavedWeaponClass = Character->GetRightHandComponent()->GetChildActorClass();
             LevelSave->SavedSocketName = Character->GetRightHandWeaponSocketName();
-            //LevelSave->SavedWeaponAssetName = Character->GetRightHandComponent()->Get;  // 수정된 메서드 호출
+
             AA_WSWeapon* Weapon = Cast<AA_WSWeapon>(Character->GetRightHandComponent()->GetChildActor());
             if (Weapon)
             {
-                LevelSave->SavedWeaponAssetName = Weapon->GetWeaponAssetName(); // GetWeaponAssetName()은 AA_WSWeapon에 있음
+                LevelSave->SavedWeaponAssetName = Weapon->GetWeaponAssetName(); // 무기 자산 이름 설정
             }
         }
     }

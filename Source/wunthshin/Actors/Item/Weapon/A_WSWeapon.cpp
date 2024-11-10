@@ -2,7 +2,7 @@
 
 
 #include "A_WSWeapon.h"
-
+#include "../A_WSItem.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/DataTable.h"
 #include "wunthshin/Components/Weapon/C_WSWeapon.h"
@@ -19,6 +19,10 @@ AA_WSWeapon::AA_WSWeapon(const FObjectInitializer& ObjectInitializer)
 {
 	WeaponComponent = CreateDefaultSubobject<UC_WSWeapon>(TEXT("Weapon"));
 
+	// RightHandWeaponComponent 생성 (UChildActorComponent)
+	RightHandWeaponComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandWeaponComponent"));
+	RightHandWeaponComponent->SetupAttachment(GetMesh(), FName("RightHandSocket")); // RightHandSocket에 부착
+	
 	SetRootComponent(GetMesh());
 	GetMesh()->SetCollisionProfileName("ItemProfile");
 	GetMesh()->SetSimulatePhysics(false);
@@ -26,7 +30,7 @@ AA_WSWeapon::AA_WSWeapon(const FObjectInitializer& ObjectInitializer)
 
 	GetItemNotifyWidget()->SetupAttachment(GetMesh());
 
-	WeaponAssetName = FName("DefaultWeapon");
+	WeaponAssetName = FName("TestWeapon");
 }
 
 UScriptStruct* AA_WSWeapon::GetTableType() const
