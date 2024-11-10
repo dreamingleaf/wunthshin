@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "wunthshin/Actors/Item/A_WSItem.h"
+#include "Components/ChildActorComponent.h"
 #include "A_WSWeapon.generated.h"
 
 struct FWeaponTableRow;
@@ -23,6 +24,10 @@ class WUNTHSHIN_API AA_WSWeapon : public AA_WSItem
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation", meta=(AllowPrivateAccess = "true"))
 	TArray<UAnimMontage*> AttackMontages;
+
+	// 추가: 무기 컴포넌트로서 UChildActorComponent 사용
+	UPROPERTY(VisibleAnywhere, Category = "Weapon")
+	UChildActorComponent* RightHandWeaponComponent;
 	
 public:	
 	// 자식 클래스가 Weapon Component를 override할 수 있도록 ObjectInitializer 생성자로
