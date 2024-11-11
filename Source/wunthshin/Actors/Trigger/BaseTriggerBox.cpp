@@ -135,11 +135,23 @@ void ABaseTriggerBox::OnYesClicked()
     {
         // 레벨 이름으로 레벨 로드
         UGameplayStatics::OpenLevel(GetWorld(), *SelectedLevel.GetAssetName());
-        if (LevelSave)
+        ULevelSaveInstance* NewLevelSave = GetWorld()->GetGameInstance()->GetSubsystem<ULevelSaveInstance>();
+        if (NewLevelSave)
         {
-            LevelSave->OnLevelLoaded();  // 레벨 로딩 후 무기 소환
+            NewLevelSave->OnLevelLoaded();  // 레벨 로딩 후 무기 소환
         }
     }
+
+
+    //// 4. 레벨 전환
+    //if (!SelectedLevel.IsNull())
+    //{
+    //    // 레벨 이름으로 레벨 로드
+    //    UGameplayStatics::OpenLevel(GetWorld(), *SelectedLevel.GetAssetName());
+
+    //    // 일정 시간이 지난 후에 레벨 로딩 완료 처리를 위한 타이머 시작
+    //    GetWorld()->GetTimerManager().SetTimer(LevelLoadTimerHandle, this, &ABaseTriggerBox::HandleLevelLoaded, 1.0f, false);
+    //}
 
     // 5. UI 비활성화
     if (PortalUI)
@@ -184,19 +196,14 @@ void ABaseTriggerBox::OnNoClicked()
     }
 }
 
-//// 무기 정보를 LevelSaveInstance에 저장하는 함수
-//void ABaseTriggerBox::SaveWeaponToLevelSaveInstance()
+
+//void ABaseTriggerBox::HandleLevelLoaded()
 //{
-//    ULevelSaveInstance* LevelSave = NewObject<ULevelSaveInstance>(GetWorld());
+//    // 레벨이 로드된 후 처리할 작업을 여기서 수행
+//    ULevelSaveInstance* LevelSave = GetWorld()->GetGameInstance()->GetSubsystem<ULevelSaveInstance>();
+//
 //    if (LevelSave)
 //    {
-//        AA_WSCharacter* Character = Cast<AA_WSCharacter>(GetWorld()->GetFirstPlayerController()->GetPawn());
-//        if (Character && Character->GetRightHandComponent())
-//        {
-//            // 무기 정보를 LevelSaveInstance에 저장
-//            LevelSave->SavedWeaponClass = Character->GetRightHandComponent()->GetChildActorClass();
-//            LevelSave->SavedSocketName = Character->GetRightHandWeaponSocketName(); // FName 타입을 그대로 저장
-//            LevelSave->SavedWeaponAssetName = Character->GetAssetName();
-//        }
+//        LevelSave->OnLevelLoaded();  // 레벨 로딩 후 무기 소환
 //    }
 //}

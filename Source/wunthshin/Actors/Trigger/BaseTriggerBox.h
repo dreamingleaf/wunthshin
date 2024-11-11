@@ -15,6 +15,8 @@ class WUNTHSHIN_API ABaseTriggerBox : public ATriggerBox
 public:
     ABaseTriggerBox();
 
+    FTimerHandle LevelLoadTimerHandle;
+
 protected:
     virtual void BeginPlay() override;
 
@@ -33,6 +35,8 @@ private:
 
     UFUNCTION(BlueprintCallable, Category = "UI")
     void OnNoClicked();
+
+    //void HandleLevelLoaded();
 
     bool bIsUIVisible;
 
